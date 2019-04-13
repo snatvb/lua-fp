@@ -32,7 +32,15 @@ local function shallowCopy(org)
     return result
 end
 
-
+--[==[
+  @name repeatStr
+  @desc
+    Повторение строки и ее склеивание в единую
+  @sig String -> String
+  @example
+    local str = "test"
+    repeatStr(str, 3) -- "testetstest"
+]==]
 local function repeatStr(str, count)
     local result = ""
     for i = 1, count do

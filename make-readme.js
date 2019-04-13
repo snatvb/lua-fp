@@ -40,7 +40,7 @@ const blockToMarkdown = {
   },
   sig: (buffer) => {
     const sig = buffer[0].replace(/[\s]*@sig[\s]*/gi, '').trim()
-    return `######*${sig}*`
+    return `###### *${sig}*`
   },
   desc: (buffer) => {
     const desc = buffer
@@ -62,7 +62,6 @@ const blockToMarkdown = {
 }
 
 const parseCommentBlock = (commentLines) => {
-  console.log('commentLines', commentLines)
   let markdownLines = []
   let buffer = [] // Буфер для сборки блока
 
