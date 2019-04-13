@@ -1,8 +1,29 @@
+--[==[
+  @name dirtyClone
+  @desc
+    Клонирование таблицы (в один уровень) быстрым способом,
+    но клонируются только числовые ключи,
+    отлично подходит для копирования массивов
+  @sig {n1, ..., n} -> {n1, ..., n}
+  @example
+    local arr = {1, 2, 3}
+    local arrCopy = dirtyClone(arr) -- arrCopy is new table
+]==]
 local function dirtyClone(org)
   return {table.unpack(org)}
 end
 
-
+--[==[
+  @name shallowCopy
+  @desc
+    Копирование таблицы в один уровень,
+    медленнее чем dirtyClone, но копирует
+    все ключи
+  @sig {k1, ..., k} -> {k1, ..., k}
+  @example
+    local t = { foo = "bar" }
+    local t2 = shallowCopy(t) -- t2 is new table
+]==]
 local function shallowCopy(org)
     local result = {}
     for k, v in pairs(org) do
