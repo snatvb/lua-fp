@@ -1,10 +1,10 @@
 --[==[
   @name dirtyClone
+  @sig {n1, ..., n} -> {n1, ..., n}
   @desc
     Клонирование таблицы (в один уровень) быстрым способом,
     но клонируются только числовые ключи,
     отлично подходит для копирования массивов
-  @sig {n1, ..., n} -> {n1, ..., n}
   @example
     local arr = {1, 2, 3}
     local arrCopy = dirtyClone(arr) -- arrCopy is new table
@@ -15,11 +15,11 @@ end
 
 --[==[
   @name shallowCopy
+  @sig {k1, ..., k} -> {k1, ..., k}
   @desc
     Копирование таблицы в один уровень,
     медленнее чем dirtyClone, но копирует
     все ключи
-  @sig {k1, ..., k} -> {k1, ..., k}
   @example
     local t = { foo = "bar" }
     local t2 = shallowCopy(t) -- t2 is new table
@@ -34,9 +34,9 @@ end
 
 --[==[
   @name repeatStr
-  @desc
-    Повторение строки и ее склеивание в единую
   @sig String -> String
+  @desc
+    Повторение строки и ее склеивание в единую новую строку
   @example
     local str = "test"
     repeatStr(str, 3) -- "testetstest"
@@ -49,7 +49,15 @@ local function repeatStr(str, count)
     return result
 end
 
-
+--[==[
+  @name toString
+  @sig (*, number) -> String
+  @desc
+    Преобразование данных в строку (так же разворачивает таблицу)
+  @example
+    local t = { foo: "bar" }
+    toString(t) -- "{ foo = [string] => bar }""
+]==]
 local function toString(value, maxDepth, depth)
     if type(value) ~= "table" then
         return "[" .. type(value) .. "] => " .. tostring(value)
@@ -74,7 +82,20 @@ function printAsString(data)
     print(toString(data))
 end
 
-
+--[==[
+  @name curry2
+  @sig (Function) -> Function -> Function -> *
+  @desc
+    Каррирование функции с двумя аргументами
+  @example
+    local sum = function(a, b)
+      return a + b
+    end
+    local add = curry2(sum)
+    local add3 = add(3)
+    add3(2) -- 5
+    add3(7) -- 10
+]==]
 local function curry2(f)
     return function(...)
         local args = table.pack(...)
@@ -86,7 +107,26 @@ local function curry2(f)
     end
 end
 
+--[==[
+  @name curryN
+  @sig (Number, Function) -> Function -> ... -> Function -> *
+  @desc
+    Каррирование функции с произвольным количеством аргументов
+  @example
+    local multiSum = function(a, b, c)
+      return a + b + c
+    end
+    local multiSumCarried = curryN(3, multiSum)
+    local sumWith10 = multiSumCarried(10)
+    sumWith10(5, 5) -- 20
 
+    local add15 = sumWith10(5)
+    add15(1) -- 16
+    multiSumCarried(1)(2)(3) -- 6
+    multiSumCarried(1)(2, 3) -- 6
+    multiSumCarried(1, 2, 3) -- 6
+    multiSumCarried(1, 2)(3) -- 6
+]==]
 local function curryN(n, f)
     local wait
     wait = function(rdc, rd)
@@ -110,7 +150,18 @@ local function curryN(n, f)
     return wait(0, {})
 end
 
-
+--[==[
+  @name tap
+  @sig (Function) -> (Function(*)) -> *
+  @desc
+    Добавляет возможность пропустить через себя какой-то аргумент и
+    создать сайд-эффек, фукнция всегда будет возвращать
+    пришедший аргумент
+  @example
+    local t = { foo: "bar" }
+    local log = tap(print)
+    log(t) -- returned { foo: "bar" } and printed log the argument
+]==]
 local tap = function(f)
     return function(data)
         f(data)
@@ -118,14 +169,38 @@ local tap = function(f)
     end
 end
 
+--[==[
+  @name assoc
+  @sig (table) -> table
+  @desc
+    Принимает таблицу, создает ее копию и перезаписывает поле.
 
+    Изменяет поле не путирая оригинальную таблицу.
+  @example
+    local t = { foo: "bar" }
+    local t2 = assoc("foo", "baz", t)
+    print(t2.foo) -- "baz"
+    print(t.foo) -- "bar"
+]==]
 local assoc = curryN(3, function(key, value, t)
     local result = shallowCopy(t)
     result[key] = value
     return result
 end)
 
+--[==[
+  @name assocPath
+  @sig (table) -> table
+  @desc
+    Тоже самое что и assoc, только может менять вложенные ключи
 
+    Если ключа нет, он будет создан
+  @example
+    local t = { foo: "bar" }
+    local t2 = assocPath({"foo", "bar", "baz"}, "hi", t)
+    print(t2.foo.bar.baz) -- "hi"
+    print(t.foo) -- "bar"
+]==]
 local assocPath = curryN(3, function (keys, val, t)
     local p = dirtyClone(keys)
     local function acp(p, val, t)
