@@ -55,7 +55,7 @@ end
   @desc
     Преобразование данных в строку (так же разворачивает таблицу)
   @example
-    local t = { foo: "bar" }
+    local t = { foo = "bar" }
     toString(t) -- "{ foo = [string] => bar }""
 ]==]
 local function toString(value, maxDepth, depth)
@@ -158,9 +158,9 @@ end
     создать сайд-эффек, фукнция всегда будет возвращать
     пришедший аргумент
   @example
-    local t = { foo: "bar" }
+    local t = { foo = "bar" }
     local log = tap(print)
-    log(t) -- returned { foo: "bar" } and printed log the argument
+    log(t) -- returned { foo = "bar" } and printed log the argument
 ]==]
 local tap = function(f)
     return function(data)
@@ -175,9 +175,9 @@ end
   @desc
     Принимает таблицу, создает ее копию и перезаписывает поле.
 
-    Изменяет поле не путирая оригинальную таблицу.
+    Изменяет поле не мутирая оригинальную таблицу.
   @example
-    local t = { foo: "bar" }
+    local t = { foo = "bar" }
     local t2 = assoc("foo", "baz", t)
     print(t2.foo) -- "baz"
     print(t.foo) -- "bar"
@@ -196,7 +196,7 @@ end)
 
     Если ключа нет, он будет создан
   @example
-    local t = { foo: "bar" }
+    local t = { foo = "bar" }
     local t2 = assocPath({"foo", "bar", "baz"}, "hi", t)
     print(t2.foo.bar.baz) -- "hi"
     print(t.foo) -- "bar"
@@ -221,14 +221,40 @@ local assocPath = curryN(3, function (keys, val, t)
     return acp(p, val, shallowCopy(t))
 end)
 
-
+--[==[
+  @name dissoc
+  @sig (table) -> table
+  @desc
+    Удаляет поле из таблицы не мутирая оригинал, возвращая новую табилцу
+  @example
+    local t = { foo = "bar" }
+    local t2 = dissoc("foo", "baz", t)
+    print(t2.foo) -- nil
+    print(t.foo) -- "bar"
+]==]
 local dissoc = curry2(function(key, t)
     local result = shallowCopy(t)
     result[key] = nil
     return result
 end)
 
+--[==[
+  @name map
+  @sig (Function, table) -> table
+  @desc
+    Принимает на вход функцию и таблицу, проходит по таблице, вызывая
+    функцию для изменения текущего поля, в поле будет установлено значение
+    полученное из переданной функции. В функцию передается (значение, ключ, индекс)
 
+    **Не мутирует оригинал**
+  @example
+    local t = { foo = "bar", bar = "baz", baz = "foo" }
+    local t2 = map(function(v, k)
+      return v .. " " .. k
+    end, t)
+    t2 -- { foo = "bar foo", bar = "baz bar", baz = "foo baz" }
+    print(t.foo) -- "bar"
+]==]
 local map = curry2(function(f, list)
     local result = {}
     local i = 1
@@ -239,7 +265,23 @@ local map = curry2(function(f, list)
     return result
 end)
 
+--[==[
+  @name filter
+  @sig (Function, table) -> table
+  @desc
+    Принимает на вход функцию-предикат и таблицу, проходит по таблице, вызывая
+    функцию для фильтрации данных. Если функция-предикат вернет true,
+    элемент попадет в новый  массив
 
+    **Не мутирует оригинал**
+  @example
+    local t = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    local t2 = filter(function(v)
+      return v > 5
+    end, t)
+    t2 -- { 6, 7, 8, 9 }
+    t -- { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+]==]
 local filter = curry2(function(pf, list)
     local result = {}
     local i = 1
@@ -251,7 +293,24 @@ local filter = curry2(function(pf, list)
     return result
 end)
 
+--[==[
+  @name reject
+  @sig (Function, table) -> table
+  @desc
+    Тоже самое что и fitler, но работает наоборот.
+    Принимает на вход функцию-предикат и таблицу, проходит по таблице, вызывая
+    функцию для фильтрации данных. Если функция-предикат вернет true,
+    элемент **не** попадет в новый  массив
 
+    **Не мутирует оригинал**
+  @example
+    local t = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    local t2 = reject(function(v)
+      return v > 5
+    end, t)
+    t2 -- { 1, 2, 3, 4, 5 }
+    t -- { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+]==]
 local reject = curry2(function(pf, list)
     local result = {}
     local i = 1
@@ -263,7 +322,25 @@ local reject = curry2(function(pf, list)
     return result
 end)
 
+--[==[
+  @name partition
+  @sig (Function, table) -> { table, table }
+  @desc
+    Расширенная версия _filter_/_reject_
+    Принимает на вход функцию-предикат и таблицу, проходит по таблице, вызывая
+    функцию для фильтрации данных. Если функция-предикат вернет true,
+    элемент попадет в первый список, иначе во второй
 
+    **Не мутирует оригинал**
+  @example
+    local t = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    local t2 = partition(function(v)
+      return v > 5
+    end, t)
+    t2[1] -- { 6, 7, 8, 9 }
+    t2[2] -- { 1, 2, 3, 4, 5 }
+    t -- { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+]==]
 local partition = curry2(function(pf, list)
     local resultFiltered = {}
     local resultRejected = {}
@@ -277,18 +354,56 @@ local partition = curry2(function(pf, list)
     return { resultFiltered, resultRejected }
 end)
 
+--[==[
+  @name reduce
+  @sig (Function, *, table) -> *
+  @desc
+    Принимает на вход функцию, аккумулятор, таблицу, итерирует ее,
+    в функцию попадает предыдущий результат, ткущий элемент(занчение), ключ, индекс.
+    В итоге отдает конечный зельтат аккумулятора
 
+    **Не мутирует оригинал**
+  @example
+    local t = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    local sum = reduce(function(acc, v)
+      return acc + v
+    end, 0, t)
+    sum -- 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 = 45
+    t -- { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+]==]
 local reduce = curryN(3, function(f, acc, list)
     local result = shallowCopy(acc)
     local i = 1
     for k, v in pairs(list) do
-        result[k] = f(result, v, k, i)
+        result = f(result, v, k, i)
         i = i + 1
     end
     return result
 end)
 
+--[==[
+  @name merge
+  @sig (table, table) -> table
+  @desc
+    Склеивает две таблицы и возвращает новую.
+    Приоритет отдается второй.
 
+    **Не мутирует оригинал**
+  @example
+    local t1 = { foo = "bar" }
+    local t2 = { bar = "baz" }
+    local t3 = merge(t1, t2)
+    t1 -- { foo = "bar" }
+    t2 -- { bar = "baz" }
+    t3 -- { foo = "bar", bar = "baz" }
+  @example
+    local t1 = { foo = "bar", bar = "baz", baz = "foo" }
+    local t2 = { bar = "hi" }
+    local t3 = merge(t1, t2)
+    t1 -- { foo = "bar", bar = "baz", baz = "foo" }
+    t2 -- { bar = "hi" }
+    t3 -- { foo = "bar", bar = "hi", baz = "foo" }
+]==]
 local merge = curry2(function(t1, t2)
     local result = shallowCopy(t1)
     for k, v in pairs(t2) do
@@ -297,6 +412,19 @@ local merge = curry2(function(t1, t2)
     return result
 end)
 
+--[==[
+  @name reverse
+  @sig (table) -> table
+  @desc
+    Разворачивает массив
+
+    **Не мутирует оригинал**
+  @example
+    local t1 = { 1, 2, 3 }
+    local t2 = reverse(t1)
+    t1 -- { 1, 2, 3 }
+    t2 -- { 3, 2, 1 }
+]==]
 local reverse = function(arr)
     local result = {}
     for i = #arr, 1, -1 do
@@ -305,7 +433,22 @@ local reverse = function(arr)
     return result
 end
 
+--[==[
+  @name slice
+  @sig (number, number, table) -> table
+  @desc
+    Вырезает часть массива.
+    Указываются индексы от(включительно) и до(не включительно)
 
+    **Не мутирует оригинал**
+  @example
+    local t1 = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    local t2 = slice(-2, 0, t1)
+    local t3 = slice(2, 4, t1)
+    t1 -- { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    t2 -- { 8, 9 }
+    t3 -- { 2, 3 }
+]==]
 local slice = curryN(3, function(from, to, t)
     if from < 0 then from = #t + from + 1 end
     if to < 0 then
@@ -320,7 +463,28 @@ local slice = curryN(3, function(from, to, t)
     return result
 end)
 
+--[==[
+  @name compose
+  @sig (Function, Function, ..., Function) -> (*) -> *
+  @desc
+    Компазиционная функция.
+    Служит для полследовательно выполенния функций.
 
+    f1(f2(f3(f4())))
+
+    **Не мутирует оригинал**
+  @example
+    local t1 = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    local t2 = compose(
+      assoc("foo", "bar"),
+      assoc("bar", "baz"),
+      fitler(function(v)
+        return v > 4
+      end)
+    )(t1)
+    t1 -- { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    t2 -- { 5, 6, 7, 8, 9, foo = "bar", bar = "baz" }
+]==]
 local compose = function(...)
     local functions = table.pack(...)
     --print(toString(functions, 2))
