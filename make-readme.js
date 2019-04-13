@@ -40,7 +40,7 @@ const blockToMarkdown = {
   },
   sig: (buffer) => {
     const sig = buffer[0].replace(/[\s]*@sig[\s]*/gi, '').trim()
-    return `###### *${sig}*`
+    return `###### _${sig}_`
   },
   desc: (buffer) => {
     const desc = buffer
